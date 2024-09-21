@@ -1,0 +1,109 @@
+#include <iostream>
+
+template <typename T>
+class Node {
+public:
+    T data;
+    Node* next;
+
+    Node(const T& value) : data(value), next(nullptr) {}
+};
+
+template <typename T>
+class CircularLinkedList {
+private:
+    Node<T>* head;
+
+public:
+    CircularLinkedList() : head(nullptr) {}
+
+    ~CircularLinkedList() {
+        clear();
+    }
+
+    void pushBack(const T& value) {
+        Node<T>* newNode = new Node<T>(value);
+        if (!head) {
+            head = newNode;
+            head->next = head;
+        } else {
+            newNode->next = head->next;
+            head->next = newNode;
+        }
+    }
+
+    void popBack() {
+        if (head) {
+            Node<T>* temp = head->next;
+            if (temp == head) {
+                delete head;
+                head = nullptr;
+            } else {
+                while (temp->next != head) {
+                    temp = temp->next;
+                }
+                temp->next = head->next;
+                delete head;
+                head = temp->next;
+            }
+        }
+    }
+
+    size_t getSize() const {
+        if (!head) {
+            return 0;
+        }
+
+        size_t count = 1;
+        Node<T>* temp = head->next;
+
+        while (temp != head) {
+            count++;
+            temp = temp->next;
+        }
+
+        return count;
+    }
+
+    bool isEmpty() const {
+        return head == nullptr;
+    }
+
+    void printList() const {
+        if (!head) {
+            return;
+        }
+
+        Node<T>* temp = head;
+        do {
+            std::cout << temp->data << " ";
+            temp = temp->next;
+        } while (temp != head);
+
+        std::cout << std::endl;
+    }
+
+    void clear() {
+        while (!isEmpty()) {
+            popBack();
+        }
+    }
+};
+
+int main() {
+    CircularLinkedList<int> myList;
+
+    myList.pushBack(1);
+    myList.pushBack(2);
+    myList.pushBack(3);
+
+    std::cout << "Original List: ";
+    myList.printList(); 
+
+    myList.popBack();
+
+    std::cout << "List after popping back: ";
+    myList.printList();
+
+    return 0;
+}
