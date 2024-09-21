@@ -1,0 +1,46 @@
+module lab4(
+	input sel;
+	input a;
+	input selb;
+	input b;
+	output reg out;
+);
+
+	reg out1, out2;
+	reg outbar;
+
+	always @(*) begin
+		
+		selb = !sel;
+		
+		out1 = a & sel;
+		out2 = b & selb;
+		
+		out = out1 ^ out2;
+		outbar = !out;
+	end
+	
+endmodule
+
+' timescale 1ns / 1ps
+
+module testbench();
+
+	reg a, b, sel;
+	wire out;
+	
+	lab4 DUT (.a(a), .b(b), .sel(sel), .out(out));
+	
+	initial begin
+	a = 0;
+	b = 1;
+	sel = 1;
+	#100
+	a = 1;
+	sel = 0;
+	#20
+	a = 0;
+	sel = 0;
+	end
+
+endmodule
