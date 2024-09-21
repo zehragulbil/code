@@ -1,0 +1,155 @@
+import pickle
+from datetime import datetime, timedelta
+
+class Task:
+    def __init__(self, description, date, start_time, end_time):
+        self.description = description
+        self.date = datetime.strptime(date, "%Y-%m-%d").date()
+        self.start_time = datetime.strptime(start_time, "%H:%M").time()
+        self.end_time = datetime.strptime(end_time, "%H:%M").time()
+
+    def __str__(self):
+        return f"{self.description} ({self.date} {self.start_time}-{self.end_time})"
+
+    def __lt__(self, other):
+        return self.date < other.date
+
+    def __gt__(self, other):
+        return self.date > other.date
+
+    def overlaps(self, other):
+        return (
+            self.date == other.date
+            and (
+                (self.start_time <= other.start_time < self.end_time)
+                or (self.start_time < other.end_time <= self.end_time)
+                or (other.start_time <= self.start_time < other.end_time)
+                or (other.start_time < self.end_time <= other.end_time)
+            )
+        )
+
+class TaskPlanner:
+    def __init__(self):
+        self.tasks = []
+
+    def add_task(self, task):
+        for existing_task in self.tasks:
+            if existing_task.overlaps(task):
+                raise ValueError("Task overlaps with an existing task.")
+        self.tasks.append(task)
+
+    def list_tasks(self, date=None):
+        if date:
+            tasks_on_date = [task for task in self.tasks if task.date == date]
+            tasks_on_date.sort(key=lambda task: task.start_time)
+            return tasks_on_date
+        else:
+            self.tasks.sort()
+            return self.tasks
+
+    def list_weekly_tasks(self, start_date):
+        end_date = start_date + timedelta(days=6)
+        weekly_tasks = [task for task in self.tasks if start_date <= task.date <= end_date]
+        weekly_tasks.sort(key=lambda task: (task.date, task.start_time))
+        return weekly_tasks
+
+    def list_available_intervals(self, date):
+        tasks_on_date = self.list_tasks(date)
+        intervals = []
+
+        if not tasks_on_date:
+            return [("", "24:00")]
+
+        for i in range(len(tasks_on_date) - 1):
+            start_time = tasks_on_date[i].end_time
+            end_time = tasks_on_date[i + 1].start_time
+            intervals.append((start_time.strftime("%H:%M"), end_time.strftime("%H:%M")))
+
+        if tasks_on_date[0].start_time != datetime.strptime("00:00", "%H:%M").time():
+            intervals.insert(0, ("00:00", tasks_on_date[0].start_time.strftime("%H:%M")))
+
+        if tasks_on_date[-1].end_time != datetime.strptime("24:00", "%H:%M").time():
+            intervals.append((tasks_on_date[-1].end_time.strftime("%H:%M"), "24:00"))
+
+        return intervals
+
+    def save_tasks_to_file(self, filename):
+        with open(filename, "wb") as file:
+            pickle.dump(self.tasks, file)
+        print(f"Tasks saved to {filename}")
+
+    def load_tasks_from_file(self, filename):
+        try:
+            with open(filename, "rb") as file:
+                self.tasks = pickle.load(file)
+            print(f"Tasks loaded from {filename}")
+        except FileNotFoundError:
+            print("No saved tasks found.")
+
+def main():
+    planner = TaskPlanner()
+
+    while True:
+        print("\n1. Add Task")
+        print("2. List Tasks")
+        print("3. List Weekly Tasks")
+        print("4. List Available Time Intervals")
+        print("5. Save Tasks to File")
+        print("6. Load Tasks from File")
+        print("7. Exit")
+
+        choice = input("Select an option (1-7): ")
+
+        if choice == "1":
+            try:
+                description = input("Enter task description: ")
+                date = input("Enter task date (YYYY-MM-DD): ")
+                start_time = input("Enter task start time (HH:MM): ")
+                end_time = input("Enter task end time (HH:MM): ")
+
+                task = Task(description, date, start_time, end_time)
+                planner.add_task(task)
+                print("Task added successfully.")
+            except ValueError as e:
+                print(f"Error: {e}")
+
+        elif choice == "2":
+            date = input("Enter date to list tasks (leave blank for all dates): ")
+            if date:
+                tasks = planner.list_tasks(datetime.strptime(date, "%Y-%m-%d").date())
+            else:
+                tasks = planner.list_tasks()
+
+            for task in tasks:
+                print(task)
+
+        elif choice == "3":
+            start_date = input("Enter the starting date for the week (YYYY-MM-DD): ")
+            weekly_tasks = planner.list_weekly_tasks(datetime.strptime(start_date, "%Y-%m-%d").date())
+            for task in weekly_tasks:
+                print(task)
+
+        elif choice == "4":
+            date = input("Enter date to list available intervals: ")
+            intervals = planner.list_available_intervals(datetime.strptime(date, "%Y-%m-%d").date())
+            for start, end in intervals:
+                print(f"Available interval: {start} - {end}")
+
+        elif choice == "5":
+            filename = input("Enter filename to save tasks: ")
+            planner.save_tasks_to_file(filename)
+
+        elif choice == "6":
+            filename = input("Enter filename to load tasks: ")
+            planner.load_tasks_from_file(filename)
+
+        elif choice == "7":
+            print("Exiting the program.")
+            break
+
+        else:
+            print("Invalid choice. Please enter a number between 1 and 7.")
+
+if __name__ == "__main__":
+    main()
+    
