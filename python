@@ -1,0 +1,30 @@
+class friend:
+    def __init__(self,name,age):
+        self.name=name
+        self.age=age
+        
+        
+    def tanit(self):
+        
+        print(f"ben {self.name} yasim {self.age} arkadasiyim")
+        
+class family(friend):
+        def __init__(self,name,age,konum):
+            super().__init__(name,age)
+            
+            self.konum=konum
+        
+        def tanit(self):
+            
+            print( f"ben {self.name} yasim{self.age} {self.konum} ailesiyim")
+        
+
+friendx=friend("zehra",20)
+friendy=friend("hazal",21)
+
+friendx.tanit()
+friendy.tanit()
+
+family1=family("nagihan",27,"sister")
+
+family1.tanit()
