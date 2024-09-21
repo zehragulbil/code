@@ -1,0 +1,27 @@
+module top (
+  input clk, // 10Hz
+  input rst,
+  input [15:0] switches,
+  input btnU,
+  input btnD,
+  input btnL,
+  input btnR,
+  input btnM,
+  output reg [15:0] leds,
+  output reg [7:0] ss3, ss2, ss1, ss0,
+  output reg red, green, blue
+);
+
+  reg[15:0] ledsNext;
+  initial begin
+    ledsNext=16'b1000000000000000;
+    leds=16'b1000000000000000;
+  end
+  always@(posedge clk) begin
+  leds<=ledsNext;
+  end
+  
+  always@(*)begin
+  ledsNext={leds[0],leds[15:1]};
+  end
+endmodule
