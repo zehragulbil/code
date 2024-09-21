@@ -1,0 +1,92 @@
+#include <iostream>
+#include <algorithm>
+
+template <typename T>
+class Node {
+public:
+    T data;
+    Node* next;
+
+    Node(const T& value) : data(value), next(nullptr) {}
+};
+
+template <typename T>
+class TopScores {
+private:
+    Node<T>* head;
+    size_t size;
+
+public:
+    TopScores() : head(nullptr), size(0) {}
+
+    ~TopScores() {
+        clear();
+    }
+
+    void insertScore(const T& score) {
+        Node<T>* newNode = new Node<T>(score);
+
+        if (!head || score > head->data) {
+            newNode->next = head;
+            head = newNode;
+        } else {
+            Node<T>* current = head;
+            while (current->next && score <= current->next->data) {
+                current = current->next;
+            }
+            newNode->next = current->next;
+            current->next = newNode;
+        }
+
+        if (size >= 10) {
+           
+            Node<T>* temp = head;
+            while (temp->next->next) {
+                temp = temp->next;
+            }
+            delete temp->next;
+            temp->next = nullptr;
+        } else {
+            size++;
+        }
+    }
+
+    void printTopScores() const {
+        Node<T>* current = head;
+        while (current) {
+            std::cout << current->data << " ";
+            current = current->next;
+        }
+        std::cout << std::endl;
+    }
+
+    void clear() {
+        while (head) {
+            Node<T>* temp = head;
+            head = head->next;
+            delete temp;
+        }
+        size = 0;
+    }
+};
+
+int main() {
+    
+    TopScores<int> gameScores;
+
+    gameScores.insertScore(150);
+    gameScores.insertScore(120);
+    gameScores.insertScore(180);
+    gameScores.insertScore(90);
+    gameScores.insertScore(200);
+    gameScores.insertScore(160);
+    gameScores.insertScore(130);
+    gameScores.insertScore(110);
+    gameScores.insertScore(140);
+    gameScores.insertScore(170);
+
+    std::cout << "Top ten scores: ";
+    gameScores.printTopScores(); 
+
+    return 0;
+}
