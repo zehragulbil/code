@@ -1,0 +1,132 @@
+from flask import Flask, jsonify, request, abort
+
+app = Flask(__name__)
+
+tasks = []
+employees = {
+    1: {'id': 1, 'username': 'employee1', 'role': 'standard'},
+    2: {'id': 2, 'username': 'admin1', 'role': 'company-admin'},
+    3: {'id': 3, 'username': 'superuser', 'role': 'super-user'},
+}
+
+
+task_counter = 1
+
+def find_employee(employee_id):
+    return employees.get(employee_id)
+
+def has_access(employee, task):
+    # Tek satırda kontrol yapıyoruz
+    return (employee['role'] == 'super-user' or
+            (employee['role'] == 'company-admin' and (employee.get('company') == task.get('company') or task['assigned_to'] == employee['id'])) or
+            task['assigned_to'] == employee['id'])
+
+@app.route('/tasks', methods=['GET'])
+def get_tasks():
+    employee_id = int(request.args.get('employee_id'))
+    employee = find_employee(employee_id)
+    
+    if not employee:
+        abort(404, "Employee not found")
+
+    employee_tasks = []
+    for task in tasks:
+        if has_access(employee, task):
+            employee_tasks.append(task)
+    
+    return jsonify(employee_tasks)
+
+@app.route('/tasks', methods=['POST'])
+def create_task():
+    global task_counter
+    data = request.json
+    employee_id = int(data['employee_id'])
+    employee = find_employee(employee_id)
+    
+    if not employee:
+        abort(404, "Employee not found")
+
+    if not data.get('description'):
+        abort(400, "Task description is required")
+
+    task = {
+        'id': task_counter,
+        'description': data['description'],
+        'assigned_to': data['assigned_to'],
+        'company': employees[data['assigned_to']].get('company'),
+        'completed': False
+    }
+
+    task_counter += 1
+    tasks.append(task)
+    
+    return jsonify(task), 201
+
+@app.route('/tasks/<int:task_id>', methods=['PATCH'])
+def update_task(task_id):
+    data = request.json
+    employee_id = int(data['employee_id'])
+    employee = find_employee(employee_id)
+
+    if not employee:
+        abort(404, "Employee not found")
+
+    task = None
+    for t in tasks:
+        if t['id'] == task_id:
+            task = t
+            break
+
+    if not task:
+        abort(404, "Task not found")
+
+    if not has_access(employee, task):
+        abort(403, "You do not have permission to update this task")
+
+    task['completed'] = data.get('completed', task['completed'])
+    
+    return jsonify(task)
+
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    data = request.json
+    employee_id = int(data['employee_id'])
+    employee = find_employee(employee_id)
+
+    if not employee:
+        abort(404, "Employee not found")
+
+    task = None
+    for t in tasks:
+        if t['id'] == task_id:
+            task = t
+            break
+
+    if not task:
+        abort(404, "Task not found")
+
+    if not has_access(employee, task):
+        abort(403, "You do not have permission to delete this task")
+        
+    tasks.remove(task)
+    return '', 204
+
+@app.route('/test')
+def test():
+    task = {
+        'employee_id': 1,
+        'description': 'Complete API development task',
+        'assigned_to': 1
+    }
+    with app.test_client() as client:
+        response = client.post('/tasks', json=task)
+        assert response.status_code == 201
+    
+    response = client.get('/tasks?employee_id=1')
+    assert response.status_code == 200
+    print(response.json)
+
+    return "Tests successful"
+
+if __name__== '__main__':
+    app.run(debug=True)
